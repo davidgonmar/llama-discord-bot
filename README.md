@@ -16,8 +16,8 @@ replicate (to run the model in the cloud)
 Clone the repository:
 
 ```bash
-git clone https://github.com/your_username/your_discord_bot.git
-cd your_discord_bot
+git clone https://github.com/davidgonmar/llama2-discord-bot.git
+cd llama2-discord-bot
 ```
 
 Create and activate a virtual environment (recommended):
