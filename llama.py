@@ -1,9 +1,14 @@
-
-from llama_cpp import Llama
+from abc import ABC, abstractmethod
+from llama_cpp import Llama as Llama
 import replicate
 
+class LlamaBase(ABC):
+    @abstractmethod
+    def generate_response(self, user_prompt: str):
+        """Generate a response using the model."""
+      
 
-class LlamaLocal():
+class LlamaLocal(LlamaBase):
     """Uses llama_cpp locally to generate responses."""
     def __init__(self, model_path: str):
         self.llama = Llama(model_path=model_path)
@@ -16,7 +21,7 @@ class LlamaLocal():
     
 
 
-class LlamaReplicate():
+class LlamaReplicate(LlamaBase):
     """Uses replicate (remote) to generate responses."""
     def __init__(self, replicate_model: str, system_prompt: str = ""):
         self.replicate_model = replicate_model
