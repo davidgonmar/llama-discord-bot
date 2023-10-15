@@ -9,8 +9,10 @@ class DiscordBot(discord.Client):
     def __init__(self, intents, local):
         super().__init__(intents=intents)
         if local:
+            print("🖥️  Running model locally")
             self.llama = LlamaLocal(model_path=os.path.abspath(os.environ['LOCAL_MODEL_PATH']))
         else:
+            print("☁️  Running model through replicate")
             self.llama = LlamaReplicate(
                 replicate_model=os.environ['REPLICATE_MODEL'],
                 system_prompt="""You are a helpful, respectful and honest assistant.
@@ -51,7 +53,7 @@ class DiscordBot(discord.Client):
             async with message.channel.typing():
                 user_prompt = await self.generate_user_prompt(
                     channel=message.channel, sender=message.author)
-                resp = self.llama.generate_response(user_prompt=user_prompt)
+                resp = await self.llama.generate_response(user_prompt=user_prompt)
                 await message.channel.send(resp)
 
         except Exception as exception:
