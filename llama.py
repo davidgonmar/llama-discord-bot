@@ -4,21 +4,36 @@ import replicate
 from util import run_async
 
 class LlamaBase(ABC):
+    """Abstract base class for llama models."""
+
+    system_prompt: str
+
     @abstractmethod
     def generate_response(self, user_prompt: str):
         """Generate a response using the model."""
+
+    def _generate_prompt(self, user_prompt: str):
+        """Given a user prompt and a system prompt, generate a prompt for the model."""
+
+        return f"<<SYS>>\n{self.system_prompt}\n<</SYS>>\n\n{user_prompt}"
       
 
 class LlamaLocal(LlamaBase):
     """Uses llama_cpp locally to generate responses."""
-    def __init__(self, model_path: str):
-        self.llama = Llama(model_path=model_path)
+    
+    def __init__(self, model_path: str, system_prompt: str = ""):
+        self.llama_cpp = Llama(model_path=model_path)
+        self.system_prompt = system_prompt
 
     @run_async
     def generate_response(self, user_prompt: str):
         """Generate a response using the local model."""
-        llama_pred = self.llama(user_prompt)
+
+        llama_pred = self.llama_cpp.create_completion(
+            prompt=self._generate_prompt(user_prompt=user_prompt),
+        )
         text = llama_pred.get('choices')[0].get('text')
+
         return text
     
 
@@ -35,12 +50,11 @@ class LlamaReplicate(LlamaBase):
 
         output = replicate.run(
             self.replicate_model,
-            input={"prompt": user_prompt, "system_prompt": self.system_prompt})
-            # Response comes chunked
-        response_parts = []
-        for item in output:
-            response_parts.append(item)
-        return "".join(response_parts)
+            input={"prompt": self._generate_prompt(user_prompt=user_prompt)},
+        )
+
+        # Response comes chunked
+        return "".join(output)
 
        
         

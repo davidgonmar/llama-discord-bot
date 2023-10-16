@@ -5,23 +5,19 @@ from llama import LlamaLocal, LlamaReplicate
 
 load_dotenv()
 
+SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
+
 class DiscordBot(discord.Client):
     def __init__(self, intents, local):
         super().__init__(intents=intents)
         if local:
             print("🖥️  Running model locally")
-            self.llama = LlamaLocal(model_path=os.path.abspath(os.environ['LOCAL_MODEL_PATH']))
+            self.llama = LlamaLocal(model_path=os.path.abspath(os.environ['LOCAL_MODEL_PATH']), system_prompt=SYSTEM_PROMPT)
         else:
             print("☁️  Running model through replicate")
             self.llama = LlamaReplicate(
                 replicate_model=os.environ['REPLICATE_MODEL'],
-                system_prompt="""You are a helpful, respectful and honest assistant.
-                                Always answer as helpfully as possible, while being safe. Your answers should not include any harmful,
-                                unethical, racist, sexist, toxic, dangerous, or illegal content. 
-                                Please ensure that your responses are socially unbiased and positive in nature.
-                                If a question does not make any sense, or is not factually coherent, explain why instead of answering
-                                something not correct. If you don't know the answer to a question, please don't
-                                share false information.""")
+                system_prompt=SYSTEM_PROMPT)
             
 
     async def generate_user_prompt(self, channel, sender, limit=5):
@@ -70,6 +66,5 @@ def bootstrap():
 
     bot = DiscordBot(intents=intents, local=mode == 'local')
     bot.run(os.environ['DISCORD_API_TOKEN'])
-
 
 bootstrap()
