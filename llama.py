@@ -22,7 +22,7 @@ class LlamaLocal(LlamaBase):
     """Uses llama_cpp locally to generate responses."""
     
     def __init__(self, model_path: str, system_prompt: str = ""):
-        self.llama_cpp = Llama(model_path=model_path)
+        self.llama_cpp = Llama(model_path=model_path, n_ctx=2048)
         self.system_prompt = system_prompt
 
     @run_async
