@@ -1,8 +1,7 @@
 import os
 from dotenv import load_dotenv
 import discord
-from llama import LlamaLocal, LlamaReplicate
-
+from llama import LlamaLocal, LlamaReplicate, Message
 load_dotenv()
 
 SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
@@ -34,6 +33,19 @@ class DiscordBot(discord.Client):
                 break
 
         return "\n".join(reversed(messages))
+    
+    async def get_channel_messages(self, channel, limit=5) -> list[Message]:
+        """Get the last `limit` messages from the channel."""
+        messages: list[Message] = []
+        async for message in channel.history():
+            if len(messages) >= limit:
+                break
+            content = message.content
+            if message.author == self.user:
+                messages.append(Message(user="bot", content=content))
+            else:
+                messages.append(Message(user="user", content=content))
+        return messages
 
 
     async def on_ready(self):
@@ -47,9 +59,8 @@ class DiscordBot(discord.Client):
                 return
 
             async with message.channel.typing():
-                user_prompt = await self.generate_user_prompt(
-                    channel=message.channel, sender=message.author)
-                resp = await self.llama.generate_response(user_prompt=user_prompt)
+                messages = await self.get_channel_messages(channel=message.channel)
+                resp = await self.llama.generate_response(messages=messages)
                 await message.channel.send(resp)
 
         except Exception as exception:
