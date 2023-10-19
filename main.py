@@ -2,6 +2,8 @@ import os
 from dotenv import load_dotenv
 import discord
 from llama import LlamaLocal, LlamaReplicate, Message
+
+
 load_dotenv()
 
 SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
@@ -52,19 +54,35 @@ class DiscordBot(discord.Client):
         """Called when the bot is ready and connected to Discord."""
         print(f'We have logged in as {self.user}')
 
-    async def on_message(self, message):
+
+
+    async def on_message(self, message: discord.Message):
         """Called when a message is sent to any channel the bot can see."""
         try:
             if message.author == self.user:
                 return
 
+            message: Message
+            async def onclick(interaction: discord.Interaction):
+                print("Button clicked")
+                await interaction.response.defer()
+                messages = await self.get_channel_messages(channel=message.channel)
+                resp = await self.llama.generate_response(messages=messages, suffix="[INST] Continue response [/INST]")
+                await interaction.message.reply(content=resp)
             async with message.channel.typing():
                 messages = await self.get_channel_messages(channel=message.channel)
-                resp = await self.llama.generate_response(messages=messages)
-                await message.channel.send(resp)
+                resp = await self.llama.generate_response(messages=messages, suffix="")
+                view = discord.ui.View()
+                button = discord.ui.Button(label="Continue response", style=discord.ButtonStyle.primary, custom_id="continue")
+                button.callback = onclick
+                view.add_item(button)
+                await message.channel.send(content=resp, view=view)
+            
 
+            
         except Exception as exception:
-            print(f"An error occurred: {exception}")
+            print(f"An error occurred: {exception.__class__.__name__}: {exception}")
+
 
 
 def bootstrap():
