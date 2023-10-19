@@ -58,22 +58,28 @@ class DiscordBot(discord.Client):
         print(f'We have logged in as {self.user}')
 
 
-
+    
     async def on_message(self, message: discord.Message):
         """Called when a message is sent to any channel the bot can see."""
         try:
             if message.author == self.user:
                 return
-            
+            view = discord.ui.View()
             async def on_continue_response(interaction: discord.Interaction):
                 # modify interaction button to disable it
                 await interaction.response.defer()
-                componments = interaction.message.components
-                print(componments)
+                components = view.children
+                components[0].label = "Generating response..."
+                components[0].disabled = True
+                # edit message to remove interaction button
+                await interaction.message.edit(view=view)
 
                 messages = await self.get_channel_messages(channel=message.channel)
                 resp = await self.llama.generate_response(messages=messages, suffix="[INST] Continue response [/INST]")
                 await interaction.followup.send(content=resp)
+
+                components[0].label = "Continue response"
+                await interaction.message.edit(view=view)
             
             async def on_rewrite_response(interaction: discord.Interaction):
                 await interaction.response.defer()
@@ -84,7 +90,7 @@ class DiscordBot(discord.Client):
             async with message.channel.typing():
                 messages = await self.get_channel_messages(channel=message.channel)
                 resp = await self.llama.generate_response(messages=messages, suffix="")
-                view = discord.ui.View()
+                
 
                 continue_response_btn = discord.ui.Button(label="Continue response", style=discord.ButtonStyle.primary, custom_id="continue")
                 continue_response_btn.callback = on_continue_response
