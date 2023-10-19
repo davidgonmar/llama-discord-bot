@@ -18,7 +18,7 @@ class LlamaBase(ABC):
         self.system_prompt = system_prompt
 
     @abstractmethod
-    def generate_response(self, messages: list[Message]) -> str:
+    def generate_response(self, messages: list[Message], suffix: str = "") -> str:
         """Generate a response using the model."""
 
     def _generate_user_prompt(self, messages: list[Message]) -> str:
@@ -43,7 +43,7 @@ class LlamaLocal(LlamaBase):
         self.llama_cpp = Llama(model_path=model_path, n_ctx=2048)
 
     @run_async
-    def generate_response(self, messages: list[Message], suffix: str) -> str:
+    def generate_response(self, messages: list[Message], suffix: str = "") -> str:
         """Generate a response using the local model."""
         prompt = self._generate_prompt(messages=messages, suffix=suffix)
         llama_pred = self.llama_cpp.create_completion(prompt=prompt)
@@ -58,7 +58,7 @@ class LlamaReplicate(LlamaBase):
         self.replicate_model = replicate_model
 
     @run_async
-    def generate_response(self, messages: list[Message], suffix: str) -> str:
+    def generate_response(self, messages: list[Message], suffix: str = "") -> str:
         """Generate a response using the replicate model."""
         input_data = {"prompt": self._generate_prompt(messages=messages, suffix=suffix)}
         output = replicate.run(self.replicate_model, input=input_data)
