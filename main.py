@@ -66,10 +66,14 @@ class DiscordBot(discord.Client):
                 return
             
             async def on_continue_response(interaction: discord.Interaction):
+                # modify interaction button to disable it
                 await interaction.response.defer()
+                componments = interaction.message.components
+                print(componments)
+
                 messages = await self.get_channel_messages(channel=message.channel)
                 resp = await self.llama.generate_response(messages=messages, suffix="[INST] Continue response [/INST]")
-                await interaction.message.reply(content=resp)
+                await interaction.followup.send(content=resp)
             
             async def on_rewrite_response(interaction: discord.Interaction):
                 await interaction.response.defer()
