@@ -36,10 +36,13 @@ class DiscordBot(discord.Client):
 
         return "\n".join(reversed(messages))
     
-    async def get_channel_messages(self, channel, limit=5) -> list[Message]:
+    async def get_channel_messages(self, channel, limit=5, skip = 0) -> list[Message]:
         """Get the last `limit` messages from the channel."""
         messages: list[Message] = []
         async for message in channel.history():
+            if skip > 0:
+                skip -= 1
+                continue
             if len(messages) >= limit:
                 break
             content = message.content
@@ -61,21 +64,31 @@ class DiscordBot(discord.Client):
         try:
             if message.author == self.user:
                 return
-
-            message: Message
-            async def onclick(interaction: discord.Interaction):
-                print("Button clicked")
+            
+            async def on_continue_response(interaction: discord.Interaction):
                 await interaction.response.defer()
                 messages = await self.get_channel_messages(channel=message.channel)
                 resp = await self.llama.generate_response(messages=messages, suffix="[INST] Continue response [/INST]")
                 await interaction.message.reply(content=resp)
+            
+            async def on_rewrite_response(interaction: discord.Interaction):
+                await interaction.response.defer()
+                messages = await self.get_channel_messages(channel=message.channel, skip=1)
+                resp = await self.llama.generate_response(messages=messages, suffix="")
+                await interaction.message.edit(content=resp)
+
             async with message.channel.typing():
                 messages = await self.get_channel_messages(channel=message.channel)
                 resp = await self.llama.generate_response(messages=messages, suffix="")
                 view = discord.ui.View()
-                button = discord.ui.Button(label="Continue response", style=discord.ButtonStyle.primary, custom_id="continue")
-                button.callback = onclick
-                view.add_item(button)
+
+                continue_response_btn = discord.ui.Button(label="Continue response", style=discord.ButtonStyle.primary, custom_id="continue")
+                continue_response_btn.callback = on_continue_response
+
+                rewrite_response_btn = discord.ui.Button(label="Rewrite response", style=discord.ButtonStyle.primary, custom_id="rewrite")
+                rewrite_response_btn.callback = on_rewrite_response
+                view.add_item(continue_response_btn)
+                view.add_item(rewrite_response_btn)
                 await message.channel.send(content=resp, view=view)
             
 
