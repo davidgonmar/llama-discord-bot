@@ -497,7 +497,7 @@ preferred-modules=
 
 # Exceptions that will emit a warning when being caught. Defaults to
 # "Exception"
-overgeneral-exceptions=builtins.Exception
+overgeneral-exceptions=None
 
 
 [TYPING]
