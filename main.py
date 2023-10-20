@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 import discord
 from llama import LlamaLocal, LlamaReplicate, Message
+from view import BotResponseView
 
 
 load_dotenv()
@@ -62,46 +63,32 @@ class DiscordBot(discord.Client):
     async def on_message(self, message: discord.Message):
         """Called when a message is sent to any channel the bot can see."""
         try:
+
+            # If message is from the bot itself, ignore it
             if message.author == self.user:
                 return
-            view = discord.ui.View()
+            
             async def on_continue_response(interaction: discord.Interaction):
                 # modify interaction button to disable it
                 await interaction.response.defer()
-                components = view.children
-                components[0].label = "Generating response..."
-                components[0].disabled = True
                 # edit message to remove interaction button
                 await interaction.message.edit(view=view)
-
                 messages = await self.get_channel_messages(channel=message.channel)
                 resp = await self.llama.generate_response(messages=messages, suffix="[INST] Continue response [/INST]")
                 await interaction.followup.send(content=resp)
 
-                components[0].label = "Continue response"
-                await interaction.message.edit(view=view)
-            
             async def on_rewrite_response(interaction: discord.Interaction):
                 await interaction.response.defer()
                 messages = await self.get_channel_messages(channel=message.channel, skip=1)
-                resp = await self.llama.generate_response(messages=messages, suffix="")
+                resp = await self.llama.generate_response(messages=messages)
                 await interaction.message.edit(content=resp)
+            view = BotResponseView(on_continue_response=on_continue_response, on_rewrite_response=on_rewrite_response)
 
             async with message.channel.typing():
                 messages = await self.get_channel_messages(channel=message.channel)
-                resp = await self.llama.generate_response(messages=messages, suffix="")
-                
-
-                continue_response_btn = discord.ui.Button(label="Continue response", style=discord.ButtonStyle.primary, custom_id="continue")
-                continue_response_btn.callback = on_continue_response
-
-                rewrite_response_btn = discord.ui.Button(label="Rewrite response", style=discord.ButtonStyle.primary, custom_id="rewrite")
-                rewrite_response_btn.callback = on_rewrite_response
-                view.add_item(continue_response_btn)
-                view.add_item(rewrite_response_btn)
+                resp = await self.llama.generate_response(messages=messages)
                 await message.channel.send(content=resp, view=view)
             
-
             
         except Exception as exception:
             print(f"An error occurred: {exception.__class__.__name__}: {exception}")
