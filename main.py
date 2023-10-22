@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 import discord
-from llama import LlamaLocal, LlamaReplicate, Message
-from view import BotResponseView
+from llama_discord_bot.llama import LlamaLocal, LlamaReplicate, Message
+from llama_discord_bot.view import BotResponseView
 
 
 load_dotenv()
@@ -21,7 +21,6 @@ class DiscordBot(discord.Client):
                 replicate_model=os.environ['REPLICATE_MODEL'],
                 system_prompt=SYSTEM_PROMPT)
             
-    
     async def get_channel_messages(self, channel, limit=5, skip = 0) -> list[Message]:
         """Get the last `limit` messages from the channel."""
         messages: list[Message] = []

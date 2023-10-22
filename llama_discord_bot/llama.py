@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Literal
 from llama_cpp import Llama
 import replicate
-from util import run_async
+from llama_discord_bot.util import run_async
 
 @dataclass
 class Message:
