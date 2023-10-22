@@ -37,7 +37,7 @@ class BotResponseView(discord.ui.View):
         elif state == "disabled":
             button.disabled = True
             button.label = self.BUTTONS[button.custom_id]["label"]
-            
+
 
         # This is necessary to 'refresh' the view so the button state changes are reflected
         await interaction.message.edit(view=self)
@@ -47,7 +47,7 @@ class BotResponseView(discord.ui.View):
     async def continue_response(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._transition_button_state(interaction=interaction, button=button, state="loading")
         await self._on_continue_response(interaction)
-        await self._transition_button_state(interaction=interaction, button=button, state="default")
+        await self._transition_button_state(interaction=interaction, button=button, state="disabled")
 
     @discord.ui.button(label=BUTTONS["rewrite_response"]["label"], style=BUTTONS["rewrite_response"]["style"], custom_id="rewrite_response")
     async def rewrite_response(self, interaction: discord.Interaction, button: discord.ui.Button):
