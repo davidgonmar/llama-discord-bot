@@ -9,13 +9,13 @@ class BotResponseView(discord.ui.View):
     # Button labels and styles
     BUTTONS = {
         "continue_response": {
-            "label": "Rewrite response",
-            "loading_label": "Rewriting response...",
+            "label": "Continue response",
+            "loading_label": "Continuing response...",
             "style": discord.ButtonStyle.primary,
         },
         "rewrite_response": {
-            "label": "Continue response",
-            "loading_label": "Continuing response...",
+            "label": "Rewrite response",
+            "loading_label": "Rewriting response...",
             "style": discord.ButtonStyle.primary,
         }
     }
