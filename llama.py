@@ -27,7 +27,9 @@ class LlamaBase(ABC):
         # Recommended way to format user input is by using the "[INST]" and "[/INST]" blocks,
         # while the bot's messages are not inside any block
         user_prompts = ["[INST]" + message.content + "[/INST]" if message.user == "user" else message.content for message in user_messages]
-        return "\n".join(reversed(user_prompts))
+
+        print(user_prompts)
+        return "\n".join(user_prompts)
 
     def _generate_prompt(self, messages: list[Message], suffix: str) -> str:
         """Generate a combined prompt for the model."""

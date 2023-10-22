@@ -51,7 +51,7 @@ class DiscordBot(discord.Client):
                 messages.append(Message(user="bot", content=content))
             else:
                 messages.append(Message(user="user", content=content))
-        return messages
+        return reversed(messages)
 
 
     async def on_ready(self):
@@ -78,7 +78,6 @@ class DiscordBot(discord.Client):
                 await interaction.followup.send(content=resp)
 
             async def on_rewrite_response(interaction: discord.Interaction):
-                print("rewrite")
                 await interaction.response.defer()
                 messages = await self.get_channel_messages(channel=message.channel, skip=1)
                 resp = await self.llama.generate_response(messages=messages)
