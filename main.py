@@ -21,21 +21,6 @@ class DiscordBot(discord.Client):
                 replicate_model=os.environ['REPLICATE_MODEL'],
                 system_prompt=SYSTEM_PROMPT)
             
-
-    async def generate_user_prompt(self, channel, sender, limit=5):
-        """Generate a formatted prompt. Only messages from the sender or bot will be included."""
-        messages = []
-        async for message in channel.history():
-            if message.author == self.user:
-                # self.user is the bot account, so we do use any specific format for these messages
-                messages.append(message.content)
-            elif message.author == sender:
-                # Indicate the beginning ("[INST]") and end (`"/INST]") of user input
-                messages.append(f"""[INST]{message.content}[/INST]""")
-            if len(messages) >= limit:
-                break
-
-        return "\n".join(reversed(messages))
     
     async def get_channel_messages(self, channel, limit=5, skip = 0) -> list[Message]:
         """Get the last `limit` messages from the channel."""
@@ -73,8 +58,8 @@ class DiscordBot(discord.Client):
                 # modify interaction button to disable it
                 await interaction.response.defer()
                 messages = await self.get_channel_messages(channel=message.channel)
+                # if the last message is not the same as the current message, do not continue
                 if (messages[-1].content != response.content):
-                    # if the last message is not the same as the current message, do not continue
                     await interaction.followup.send(embed=discord.Embed(title="Error", description="There has already been messages after this one. You cannot continue the response.", color=discord.Color.red()), ephemeral=True)
                     return
                 resp = await self.llama.generate_response(messages=messages, suffix="[INST] Continue response [/INST]")
