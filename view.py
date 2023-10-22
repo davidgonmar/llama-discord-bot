@@ -28,6 +28,7 @@ class BotResponseView(discord.ui.View):
 
     async def _transition_button_state(self, interaction: discord.Interaction, button: discord.ui.Button, state: Literal["default", "loading", "disabled"]) -> None:
         """Transition the button state to either default or loading. Also updates the view so changes are reflected"""
+        print("transitioning button state")
         if state == "default":
             button.disabled = False
             button.label = self.BUTTONS[button.custom_id]["label"]
@@ -41,8 +42,7 @@ class BotResponseView(discord.ui.View):
 
         # This is necessary to 'refresh' the view so the button state changes are reflected
         await interaction.message.edit(view=self)
-
-
+   
     @discord.ui.button(label=BUTTONS["continue_response"]["label"], style=BUTTONS["continue_response"]["style"], custom_id="continue_response")
     async def continue_response(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._transition_button_state(interaction=interaction, button=button, state="loading")
@@ -54,5 +54,3 @@ class BotResponseView(discord.ui.View):
         await self._transition_button_state(interaction=interaction, button=button, state="loading")
         await self._on_rewrite_response(interaction)
         await self._transition_button_state(interaction=interaction, button=button, state="default")
-
-

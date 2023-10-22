@@ -51,7 +51,7 @@ class DiscordBot(discord.Client):
                 messages.append(Message(user="bot", content=content))
             else:
                 messages.append(Message(user="user", content=content))
-        return reversed(messages)
+        return list(reversed(messages))
 
 
     async def on_ready(self):
