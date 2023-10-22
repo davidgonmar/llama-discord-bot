@@ -68,12 +68,15 @@ class DiscordBot(discord.Client):
             if message.author == self.user:
                 return
             
+            response = None
             async def on_continue_response(interaction: discord.Interaction):
                 # modify interaction button to disable it
                 await interaction.response.defer()
-                # edit message to remove interaction button
-                await interaction.message.edit(view=view)
                 messages = await self.get_channel_messages(channel=message.channel)
+                if (messages[-1].content != response.content):
+                    # if the last message is not the same as the current message, do not continue
+                    await interaction.followup.send(embed=discord.Embed(title="Error", description="There has already been messages after this one. You cannot continue the response.", color=discord.Color.red()), ephemeral=True)
+                    return
                 resp = await self.llama.generate_response(messages=messages, suffix="[INST] Continue response [/INST]")
                 await interaction.followup.send(content=resp)
 
@@ -82,12 +85,13 @@ class DiscordBot(discord.Client):
                 messages = await self.get_channel_messages(channel=message.channel, skip=1)
                 resp = await self.llama.generate_response(messages=messages)
                 await interaction.message.edit(content=resp)
+
             view = BotResponseView(on_continue_response=on_continue_response, on_rewrite_response=on_rewrite_response)
 
             async with message.channel.typing():
                 messages = await self.get_channel_messages(channel=message.channel)
                 resp = await self.llama.generate_response(messages=messages)
-                await message.channel.send(content=resp, view=view)
+                response = await message.channel.send(content=resp, view=view)
             
             
         except Exception as exception:

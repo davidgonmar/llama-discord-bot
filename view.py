@@ -28,7 +28,6 @@ class BotResponseView(discord.ui.View):
 
     async def _transition_button_state(self, interaction: discord.Interaction, button: discord.ui.Button, state: Literal["default", "loading", "disabled"]) -> None:
         """Transition the button state to either default or loading. Also updates the view so changes are reflected"""
-        print("transitioning button state")
         if state == "default":
             button.disabled = False
             button.label = self.BUTTONS[button.custom_id]["label"]
