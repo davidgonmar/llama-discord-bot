@@ -3,6 +3,7 @@ import discord
 
 TCallback = Callable[[discord.Interaction], None]
 
+
 class BotResponseView(discord.ui.View):
     # Button labels and styles
     BUTTONS = {
@@ -23,7 +24,6 @@ class BotResponseView(discord.ui.View):
         self._on_continue_response = on_continue_response
         self._on_rewrite_response = on_rewrite_response
 
-
     async def _transition_button_state(self, interaction: discord.Interaction, button: discord.ui.Button, state: Literal["default", "loading", "disabled"]) -> None:
         """Transition the button state to either default or loading. Also updates the view so changes are reflected"""
         if state == "default":
@@ -36,10 +36,9 @@ class BotResponseView(discord.ui.View):
             button.disabled = True
             button.label = self.BUTTONS[button.custom_id]["label"]
 
-
         # This is necessary to 'refresh' the view so the button state changes are reflected
         await interaction.message.edit(view=self)
-   
+
     @discord.ui.button(label=BUTTONS["continue_response"]["label"], style=BUTTONS["continue_response"]["style"], custom_id="continue_response")
     async def continue_response(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._transition_button_state(interaction=interaction, button=button, state="loading")

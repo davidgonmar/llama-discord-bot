@@ -5,6 +5,7 @@ import functools
 
 T = typing.TypeVar("T")
 
+
 def run_async(func: typing.Callable[..., T]) -> typing.Callable[..., typing.Awaitable[T]]:
     @functools.wraps(func)
     async def wrapper(*args, **kwargs):

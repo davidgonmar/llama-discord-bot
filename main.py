@@ -5,24 +5,26 @@ from llama_discord_bot.llama import LlamaLocal, LlamaReplicate, Message
 from llama_discord_bot.view import BotResponseView
 
 
-load_dotenv()
-
-SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
-
 class DiscordBot(discord.Client):
+
+    SYSTEM_PROMPT = """You are a helpful, respectful and honest assistant."""
+    CONTINUE_RESPONSE_SUFFIX = """This is a conversation you were having. Please continue your response."""
+    MESSAGES_AFTER_THIS_ONE = """There has already been messages after this one. You cannot continue the response."""
+
     def __init__(self, intents, local):
         super().__init__(intents=intents)
         if local:
             print("🖥️  Running model locally")
-            self.llama = LlamaLocal(model_path=os.path.abspath(os.environ['LOCAL_MODEL_PATH']), system_prompt=SYSTEM_PROMPT)
+            self.llama = LlamaLocal(model_path=os.path.abspath(
+                os.environ['LOCAL_MODEL_PATH']), system_prompt=self.SYSTEM_PROMPT)
         else:
             print("☁️  Running model through replicate")
             self.llama = LlamaReplicate(
                 replicate_model=os.environ['REPLICATE_MODEL'],
-                system_prompt=SYSTEM_PROMPT)
-            
-    async def get_channel_messages(self, channel, limit=5, skip = 0) -> list[Message]:
-        """Get the last `limit` messages from the channel."""
+                system_prompt=self.SYSTEM_PROMPT)
+
+    async def get_channel_messages(self, channel, limit=5, skip=0) -> list[Message]:
+        """Get the last `limit` messages from the channel, skipping `skip` messages"""
         messages: list[Message] = []
         async for message in channel.history():
             if skip > 0:
@@ -37,61 +39,70 @@ class DiscordBot(discord.Client):
                 messages.append(Message(user="user", content=content))
         return list(reversed(messages))
 
-
     async def on_ready(self):
-        """Called when the bot is ready and connected to Discord."""
-        print(f'We have logged in as {self.user}')
+        print(f'Bot initialized as {self.user}')
 
-
-    
     async def on_message(self, message: discord.Message):
         """Called when a message is sent to any channel the bot can see."""
         try:
-
-            # If message is from the bot itself, ignore it
+            # Ignore messages from self
             if message.author == self.user:
                 return
-            
-            response = None
+
+            response: discord.Message = None
+
             async def on_continue_response(interaction: discord.Interaction):
-                # modify interaction button to disable it
+                """Called when the user clicks the 'Continue response' button. It will send a new response continuing the old one"""
+
+                # Since the text generation will probably take longer than 3 seconds, we need to defer
+                # the interaction response. If we don't, it'll fail
                 await interaction.response.defer()
                 messages = await self.get_channel_messages(channel=message.channel)
-                # if the last message is not the same as the current message, do not continue
+
+                # If the last message is not the same as the current message, do not continue response.
+                # This might be the case if the user already sent a message after this one
                 if (messages[-1].content != response.content):
-                    await interaction.followup.send(embed=discord.Embed(title="Error", description="There has already been messages after this one. You cannot continue the response.", color=discord.Color.red()), ephemeral=True)
+                    await interaction.followup.send(embed=discord.Embed(title="Error", description=self.MESSAGES_AFTER_THIS_ONE, color=discord.Color.red()), ephemeral=True)
                     return
-                resp = await self.llama.generate_response(messages=messages, suffix="[INST] Continue response [/INST]")
-                await interaction.followup.send(content=resp)
+
+                llama_response = await self.llama.generate_response(messages=messages, suffix=self.CONTINUE_RESPONSE_SUFFIX)
+                await interaction.followup.send(content=llama_response)
 
             async def on_rewrite_response(interaction: discord.Interaction):
+                """Called when the user clicks the 'Rewrite response' button. It will rewrite the response and edit the original message"""
+
+                # Since the text generation will probably take longer than 3 seconds, we need to defer
+                # the interaction response. If we don't, it'll fail
                 await interaction.response.defer()
                 messages = await self.get_channel_messages(channel=message.channel, skip=1)
-                resp = await self.llama.generate_response(messages=messages)
-                await interaction.message.edit(content=resp)
+                llama_response = await self.llama.generate_response(messages=messages)
+                await interaction.message.edit(content=llama_response)
 
-            view = BotResponseView(on_continue_response=on_continue_response, on_rewrite_response=on_rewrite_response)
+            view = BotResponseView(
+                on_continue_response=on_continue_response, on_rewrite_response=on_rewrite_response)
 
             async with message.channel.typing():
                 messages = await self.get_channel_messages(channel=message.channel)
-                resp = await self.llama.generate_response(messages=messages)
-                response = await message.channel.send(content=resp, view=view)
-            
-            
-        except Exception as exception:
-            print(f"An error occurred: {exception.__class__.__name__}: {exception}")
+                llama_response = await self.llama.generate_response(messages=messages)
+                response = await message.channel.send(content=llama_response, view=view)
 
+        except Exception as exception:
+            print(
+                f"An error occurred: {exception.__class__.__name__}: {exception}")
 
 
 def bootstrap():
+    load_dotenv()
+
     intents = discord.Intents.default()
     intents.message_content = True
-    
 
     mode = os.environ['MODE'].lower()
-    assert mode in {'local', 'replicate'}, f"Invalid mode: {mode}. Must be 'LOCAL' or 'REPLICATE'."
+    assert mode in {
+        'local', 'replicate'}, f"Invalid mode: {mode}. Must be 'LOCAL' or 'REPLICATE'."
 
     bot = DiscordBot(intents=intents, local=mode == 'local')
     bot.run(os.environ['DISCORD_API_TOKEN'])
+
 
 bootstrap()
