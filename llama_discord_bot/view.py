@@ -5,6 +5,8 @@ TCallback = Callable[[discord.Interaction], None]
 
 
 class BotResponseView(discord.ui.View):
+    """A view for the bot response message. Contains buttons to continue or rewrite the response."""
+
     # Button labels and styles
     BUTTONS = {
         "continue_response": {
@@ -26,6 +28,7 @@ class BotResponseView(discord.ui.View):
 
     async def _transition_button_state(self, interaction: discord.Interaction, button: discord.ui.Button, state: Literal["default", "loading", "disabled"]) -> None:
         """Transition the button state to either default or loading. Also updates the view so changes are reflected"""
+
         if state == "default":
             button.disabled = False
             button.label = self.BUTTONS[button.custom_id]["label"]
@@ -43,6 +46,7 @@ class BotResponseView(discord.ui.View):
     async def continue_response(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._transition_button_state(interaction=interaction, button=button, state="loading")
         await self._on_continue_response(interaction)
+        # Disable button because we can only continue a response once
         await self._transition_button_state(interaction=interaction, button=button, state="disabled")
 
     @discord.ui.button(label=BUTTONS["rewrite_response"]["label"], style=BUTTONS["rewrite_response"]["style"], custom_id="rewrite_response")
