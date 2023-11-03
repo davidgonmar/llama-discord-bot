@@ -23,7 +23,7 @@ class TestLlamaBaseGeneratePrompt():
             Message("bot", "That's good to hear!"),
         ]
 
-        prompt = llama._generate_prompt(test_messages, "Hello, how are you?")
+        prompt = llama._generate_prompt(test_messages, "")
         expected_prompt = """
         <s>
         [INST]
@@ -122,6 +122,40 @@ class TestLlamaBaseGeneratePrompt():
         [/INST]
         </s>
         """
+        assert self.compare_strings_without_spaces(prompt, expected_prompt)
+
+    def test_with_suffix(self):
+        # pylint: disable=abstract-class-instantiated
+        llama = LlamaBase()
+        test_messages = [
+            Message("user", "Hello, how are you?"),
+            Message("bot", "I'm fine, thanks!"),
+            Message("user", "That's good to hear!"),
+        ]
+
+        prompt = llama._generate_prompt(
+            test_messages, "This was a previous conversation. Please continue it.")
+
+        print(prompt)
+        expected_prompt = """
+        <s>
+        [INST]
+        Hello, how are you?
+        [/INST]
+        I'm fine, thanks!
+        </s>
+        <s>
+        [INST]
+        That's good to hear!
+        [/INST]
+        </s>
+        <s>
+        [INST]
+        This was a previous conversation. Please continue it.
+        [/INST]
+        </s>
+        """
+
         assert self.compare_strings_without_spaces(prompt, expected_prompt)
 
 

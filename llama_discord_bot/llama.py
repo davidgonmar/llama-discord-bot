@@ -85,6 +85,14 @@ class LlamaBase(ABC):
             if (bot_message and user_message):
                 i += 1  # Increment the index to skip the bot message in the next iteration if we used 2 messages
 
+        if (suffix):
+            prompt += f"""
+            <s>
+            [INST]
+            {suffix}
+            [/INST]
+            </s>
+            """
         return prompt.strip()
 
 
