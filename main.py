@@ -23,8 +23,11 @@ class DiscordBot(discord.Client):
                 replicate_model=os.environ['REPLICATE_MODEL'],
                 system_prompt=self.SYSTEM_PROMPT)
 
-    async def get_channel_messages(self, channel, limit=5, skip=0) -> list[Message]:
-        """Get the last `limit` messages from the channel, skipping `skip` messages"""
+    async def get_channel_messages(self, channel, limit=5, skip=0, start_with_user=True) -> list[Message]:
+        """
+        Get the last `limit` messages from the channel, skipping `skip` messages.
+        If `start_with_user` is true, it will skip messages until it finds a message from the user (not the bot)
+        """
         messages: list[Message] = []
         async for message in channel.history():
             if skip > 0:

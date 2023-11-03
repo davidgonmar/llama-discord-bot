@@ -9,9 +9,8 @@ from llama_discord_bot.run_async import run_async
 @dataclass
 class Message:
     """A message sent by a user or the bot."""
-
-    content: str
     user: Literal["user", "bot"]
+    content: str
 
 
 class LlamaBase(ABC):
@@ -58,41 +57,47 @@ class LlamaBase(ABC):
 
         # append all messages for each sub-list into a single string,
         #  so for each message group user= messages[0].user and content = all messages in the group
-        messages = [{"user": group[0].user, "content": "".join(
-            [message.content for message in group])} for group in messages_grouped]
+        messages = [Message(group[0].user, "".join(
+            [message.content for message in group])) for group in messages_grouped]
 
         # now, for each pair, format it like
-        """
-        <s>
-        {{ bot_message }}
-        [INST] <<SYS>>
-        {{ system_prompt }}
-        <</SYS>>
-        {{ user_message }} [/INST] </s>
-        """
+        # <s>
+        # {{ bot_message }}
+        # [INST] <<SYS>>
+        # {{ system_prompt }}
+        # <</SYS>>
+        # {{ user_message }} [/INST] </s>
+
         # if there is no bot or user message, simply write "" System prompt and their delimiters only appended on first pair
 
         prompt = ""
         i = 0
         while i < len(messages):
             message = messages[i]
-            bot_message = message["content"] if message["user"] == "bot" else ""
-            user_message = message["content"] if message["user"] == "user" else ""
-            system_prompt = self.SYSTEM_INPUT_START + \
-                self.system_prompt + self.SYSTEM_INPUT_END if i == 0 else ""
-            prompt += f"""
-            <s>
-            {bot_message}
+            bot_message = message.content.strip(
+            ) if message.user == "bot" else ""
+            user_message = message.content.strip(
+            ) if message.user == "user" else ""
+
+            if (user_message):
+                if (len(messages) > i + 1 and messages[i + 1].user == "bot"):
+                    # Dont do i + 1 since its done later
+                    bot_message = messages[i + 1].content.strip()
+
+            system_prompt = (self.SYSTEM_INPUT_START +
+                             self.system_prompt + self.SYSTEM_INPUT_END) if (i == 0 and self.system_prompt.strip() != "") else ""
+            prompt += f"""<s>
             [INST]
             {system_prompt}
-            {user_message} [/INST] </s>
-            """
-
+            {user_message}
+            [/INST]
+            {bot_message}
+            </s>"""
             if bot_message != "":
                 i += 1
             if user_message != "":
                 i += 1
-        print(prompt)
+
         return prompt.strip()
 
 
