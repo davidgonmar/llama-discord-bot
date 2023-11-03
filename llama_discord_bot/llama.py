@@ -17,14 +17,6 @@ class Message:
 class LlamaBase(ABC):
     """Abstract base class for Llama models."""
 
-    # Constants used to format the user input
-    USER_INPUT_START = "[INST]"
-    USER_INPUT_END = "[/INST]"
-    SYSTEM_INPUT_START = "<<SYS>>"
-    SYSTEM_INPUT_END = "<</SYS>>"
-    MESSAGES_PAIR_START = "<s>"
-    MESSAGES_PAIR_END = "</s>"
-
     def __init__(self, system_prompt: str = ""):
         self.system_prompt = system_prompt
 
@@ -69,8 +61,8 @@ class LlamaBase(ABC):
                 bot_message = messages[i + 1].content.strip()
 
             # Add the system prompt only for the first message and if it's not empty
-            system_prompt = (self.SYSTEM_INPUT_START +
-                             self.system_prompt + self.SYSTEM_INPUT_END) if (i == 0 and self.system_prompt.strip() != "") else ""
+            system_prompt = ("<<SYS>>" +
+                             self.system_prompt + "<</SYS>>") if (i == 0 and self.system_prompt.strip()) else ""
 
             # Add the prompt part to the string
             prompt += f"""<s>
