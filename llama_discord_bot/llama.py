@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Literal
+from itertools import groupby
 from llama_cpp import Llama
 import replicate
 from llama_discord_bot.run_async import run_async
@@ -31,61 +32,47 @@ class LlamaBase(ABC):
     def generate_response(self, messages: list[Message], suffix: str = "") -> str:
         """Generate a response using the model."""
 
+    def _merge_consecutive_messages_by_role(self, messages: list[Message]) -> list[Message]:
+        """Merges consecutive messages from the same author into a single message with concatenated content"""
+
+        def keyfunc(message): return message.user
+
+        # Group messages by author
+        messages_grouped = [list(group)
+                            for key, group in groupby(messages, keyfunc)]
+
+        # Merge all the content from each group into a single message
+        messages = [Message(group[0].user, "".join(
+            message.content for message in group)) for group in messages_grouped]
+
+        return messages
+
     def _generate_prompt(self, messages: list[Message], suffix: str) -> str:
-        """From a list of messages, generate a prompt, including both the user and system prompts."""
+        """From a list of messages, generate a prompt, including both the user and system prompts. It uses the prompting technique from Meta's paper."""
 
-        # The prompting technique is the one from Meta's paper.
-        # A good explanation can be found at https://huggingface.co/blog/llama2#how-to-prompt-llama-2
-
-        if (len(messages) == 0):
+        if not messages:
             raise ValueError("Cannot generate prompt from empty messages list")
 
-        # We need to group messages into groups like:
-        # [[user, user, user....], [bot, bot, bot...], [user, user, user...], ...]
-        # basically group consecutive messages from the same author together
-        # we dont know what the first message is, so we need to find out
+        # Merge consecutive messages from the same author into a single message with concatenated content
+        messages = self._merge_consecutive_messages_by_role(messages)
 
-        current_role = messages[0].user
-        messages_grouped = [[messages[0]]]
-
-        for message in messages[1:]:
-            if message.user == current_role:
-                messages_grouped[-1].append(message)
-            else:
-                messages_grouped.append([message])
-                current_role = message.user
-
-        # append all messages for each sub-list into a single string,
-        #  so for each message group user= messages[0].user and content = all messages in the group
-        messages = [Message(group[0].user, "".join(
-            [message.content for message in group])) for group in messages_grouped]
-
-        # now, for each pair, format it like
-        # <s>
-        # {{ bot_message }}
-        # [INST] <<SYS>>
-        # {{ system_prompt }}
-        # <</SYS>>
-        # {{ user_message }} [/INST] </s>
-
-        # if there is no bot or user message, simply write "" System prompt and their delimiters only appended on first pair
-
+        # Initialize the prompt as an empty string
         prompt = ""
         i = 0
         while i < len(messages):
             message = messages[i]
-            bot_message = message.content.strip(
-            ) if message.user == "bot" else ""
-            user_message = message.content.strip(
-            ) if message.user == "user" else ""
+            bot_message = message.content.strip() if message.user == "bot" else ""
+            user_message = message.content.strip() if message.user == "user" else ""
 
-            if (user_message):
-                if (len(messages) > i + 1 and messages[i + 1].user == "bot"):
-                    # Dont do i + 1 since its done later
-                    bot_message = messages[i + 1].content.strip()
+            # If the next message is from the bot, use its content for the bot message
+            if user_message and (i + 1 < len(messages)) and (messages[i + 1].user == "bot"):
+                bot_message = messages[i + 1].content.strip()
 
+            # Add the system prompt only for the first message and if it's not empty
             system_prompt = (self.SYSTEM_INPUT_START +
                              self.system_prompt + self.SYSTEM_INPUT_END) if (i == 0 and self.system_prompt.strip() != "") else ""
+
+            # Add the prompt part to the string
             prompt += f"""<s>
             [INST]
             {system_prompt}
@@ -93,10 +80,10 @@ class LlamaBase(ABC):
             [/INST]
             {bot_message}
             </s>"""
-            if bot_message != "":
-                i += 1
-            if user_message != "":
-                i += 1
+
+            i += 1  # Increment the index to move to the next message
+            if (bot_message and user_message):
+                i += 1  # Increment the index to skip the bot message in the next iteration if we used 2 messages
 
         return prompt.strip()
 
