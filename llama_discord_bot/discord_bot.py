@@ -38,7 +38,7 @@ class DiscordBot(discord.Client):
         self.discord_api_token = discord_api_token
         self.run(discord_api_token)
 
-    async def get_channel_messages(self, channel, limit=5, skip=0) -> list[Message]:
+    async def _get_channel_messages(self, channel, limit=5, skip=0) -> list[Message]:
         """Get the last `limit` messages from a channel, skipping `skip` messages."""
 
         messages: list[Message] = []
@@ -76,7 +76,7 @@ class DiscordBot(discord.Client):
                 # Since the text generation will probably take longer than 3 seconds, we need to defer
                 # the interaction response. If we don't, it'll fail
                 await interaction.response.defer()
-                messages = await self.get_channel_messages(channel=message.channel)
+                messages = await self._get_channel_messages(channel=message.channel)
 
                 # If the last message is not the same as the current message, do not continue response.
                 # This might be the case if the user already sent a message after this one
@@ -104,7 +104,7 @@ class DiscordBot(discord.Client):
                 # Since the text generation will probably take longer than 3 seconds, we need to defer
                 # the interaction response. If we don't, it'll fail
                 await interaction.response.defer()
-                messages = await self.get_channel_messages(
+                messages = await self._get_channel_messages(
                     channel=message.channel, skip=1
                 )
                 llama_response = await self.llama.generate_response(messages=messages)
@@ -118,7 +118,7 @@ class DiscordBot(discord.Client):
             )
 
             async with message.channel.typing():
-                messages = await self.get_channel_messages(channel=message.channel)
+                messages = await self._get_channel_messages(channel=message.channel)
                 llama_response = await self.llama.generate_response(messages=messages)
                 response = await message.channel.send(content=llama_response, view=view)
 
